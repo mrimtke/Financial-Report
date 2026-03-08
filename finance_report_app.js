@@ -36,7 +36,7 @@ const AppConfig = {
       printPreviewBody: document.getElementById('printPreviewBody'),
       closePreviewBtn: document.getElementById('closePreviewBtn'),
       execPrintBtn: document.getElementById('execPrintBtn'),
-      savePdfBtn: document.getElementById('savePdfBtn')
+      exportPdfBtn: document.getElementById('exportPdfBtn')
     };
 
     const DataStore = (() => {
@@ -56,6 +56,26 @@ const AppConfig = {
         return sourceItems.reduce((max, x) => Math.max(max, Number(x.id || 0)), 100);
       }
 
+      function normalizeItem(rawItem) {
+        return {
+          id: Number(rawItem?.id ?? 0),
+          type: String(rawItem?.type || '').trim(),
+          year: Number(rawItem?.year ?? 0),
+          category: String(rawItem?.category || '').trim(),
+          name: String(rawItem?.name || '').trim(),
+          date: String(rawItem?.date || '').trim(),
+          amount: Number(rawItem?.amount ?? 0),
+          memo: String(rawItem?.memo || '').trim()
+        };
+      }
+
+      function normalizeItems(sourceItems) {
+        return (Array.isArray(sourceItems) ? sourceItems : [])
+          .map(normalizeItem)
+          .filter(item => Number.isFinite(item.id) && item.id > 0)
+          .filter(item => ['income', 'expense'].includes(item.type));
+      }
+
       function loadFromStorage() {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -71,7 +91,7 @@ const AppConfig = {
             throw new Error('保存形式が不正');
           }
 
-          items = clone(parsed.items);
+          items = normalizeItems(parsed.items);
           settings = { ...defaultSettings, ...(parsed.settings || {}) };
           sequence = Number(parsed.sequence || getNextSequence(items));
           return { loaded: true, message: `端末保存データを読込済み（${items.length}件）` };
@@ -104,28 +124,31 @@ const AppConfig = {
           return clone(items);
         },
         getById(id) {
-          return clone(items.find(x => x.id === id) || null);
+          const targetId = Number(id);
+          return clone(items.find(x => Number(x.id) === targetId) || null);
         },
         save(record) {
-          if (record.id == null) {
-            record.id = ++sequence;
-            items.push(clone(record));
+          const normalizedRecord = normalizeItem(record);
+          if (!normalizedRecord.id) {
+            normalizedRecord.id = ++sequence;
+            items.push(clone(normalizedRecord));
             persist();
-            return record.id;
+            return normalizedRecord.id;
           }
-          const index = items.findIndex(x => x.id === record.id);
+          const index = items.findIndex(x => Number(x.id) === normalizedRecord.id);
           if (index >= 0) {
-            items[index] = clone(record);
+            items[index] = clone(normalizedRecord);
             persist();
-            return record.id;
+            return normalizedRecord.id;
           }
-          record.id = ++sequence;
-          items.push(clone(record));
+          normalizedRecord.id = ++sequence;
+          items.push(clone(normalizedRecord));
           persist();
-          return record.id;
+          return normalizedRecord.id;
         },
         remove(id) {
-          items = items.filter(x => x.id !== id);
+          const targetId = Number(id);
+          items = items.filter(x => Number(x.id) !== targetId);
           persist();
         },
         load() {
@@ -143,7 +166,7 @@ const AppConfig = {
           return loadFromStorage();
         },
         setAll(newItems) {
-          items = clone(newItems);
+          items = normalizeItems(newItems);
           sequence = getNextSequence(items);
           persist();
           return { count: items.length, savedAt: new Date().toISOString() };
@@ -877,6 +900,7 @@ const AppConfig = {
 
     const EventBinder = (() => {
       function bind() {
+        if (!Dom.cardList) throw new Error('cardList が見つかりません。');
         Dom.tabButtons.forEach(btn => {
           btn.addEventListener('click', () => {
             AppService.state.selectedTab = btn.dataset.tab;
@@ -920,7 +944,7 @@ const AppConfig = {
         Dom.pdfBtn.addEventListener('click', PdfService.openPreview);
         Dom.closePreviewBtn.addEventListener('click', PdfService.closePreview);
         Dom.execPrintBtn.addEventListener('click', PdfService.executePrint);
-        Dom.savePdfBtn.addEventListener('click', PdfService.exportPdf);
+        Dom.exportPdfBtn.addEventListener('click', PdfService.exportPdf);
 
         Dom.csvFileInput.addEventListener('change', async (e) => {
           const file = e.target.files && e.target.files[0];
