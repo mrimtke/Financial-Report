@@ -618,13 +618,14 @@ const AppConfig = {
 
       function buildRows(items) {
         if (!items.length) {
-          return '<tr><td colspan="4" style="text-align:center; color:#666;">データなし</td></tr>';
+          return '<tr><td colspan="5" style="text-align:center; color:#666;">データなし</td></tr>';
         }
 
         return items.map(item => `
           <tr>
             <td>${escapeHtml(item.category)}</td>
             <td>${escapeHtml(item.name)}</td>
+            <td>${escapeHtml(item.memo || '')}</td>
             <td>${escapeHtml(AppService.formatDate(item.date))}</td>
             <td class="amount-cell">${escapeHtml(AppService.formatCurrency(item.amount))}</td>
           </tr>
@@ -640,7 +641,6 @@ const AppConfig = {
             <div class="report-section-title ${themeClass}">${title}</div>
             <div class="report-mini-summary">
               <div class="report-badge ${themeClass}">合計 ${escapeHtml(AppService.formatCurrency(summary.total))}</div>
-              <div class="report-badge">最新日付 ${escapeHtml(summary.latest ? AppService.formatDate(summary.latest) : '-')}</div>
             </div>
             <div class="report-table-wrap">
               <table class="report-table">
@@ -648,6 +648,7 @@ const AppConfig = {
                   <tr>
                     <th>項目</th>
                     <th>氏名 / 対象</th>
+                    <th>詳細</th>
                     <th>日付</th>
                     <th class="amount-cell">金額</th>
                   </tr>
@@ -670,17 +671,6 @@ const AppConfig = {
               <div class="report-title">${escapeHtml(report.groupName)} 収支報告書</div>
               <div class="report-meta">年度: ${escapeHtml(String(report.year))}</div>
               <div class="report-meta">作成日: ${escapeHtml(report.createdDate)}</div>
-
-              <div class="report-summary">
-                <div class="report-summary-card">
-                  <div class="report-summary-label">収入合計</div>
-                  <div class="report-summary-value" style="color:#16a34a;">${escapeHtml(AppService.formatCurrency(report.incomeSummary.total))}</div>
-                </div>
-                <div class="report-summary-card">
-                  <div class="report-summary-label">支出合計</div>
-                  <div class="report-summary-value" style="color:#dc2626;">${escapeHtml(AppService.formatCurrency(report.expenseSummary.total))}</div>
-                </div>
-              </div>
             </header>
 
             ${buildSection('収入', 'income', report.incomeItems)}
@@ -723,11 +713,12 @@ const AppConfig = {
 
       function buildTableBody(items) {
         if (!items.length) {
-          return [['', 'データなし', '', '']];
+          return [['', 'データなし', '', '', '']];
         }
         return items.map(item => [
           item.category || '',
           item.name || '',
+          item.memo || '',
           AppService.formatDate(item.date),
           AppService.formatCurrency(item.amount)
         ]);
@@ -740,18 +731,18 @@ const AppConfig = {
         const summary = AppService.getSummary(items);
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
-        doc.text(`合計: ${AppService.formatCurrency(summary.total)}    最新日付: ${summary.latest ? AppService.formatDate(summary.latest) : '-'}`, 14, startY + 6);
+        doc.text(`合計: ${AppService.formatCurrency(summary.total)}`, 14, startY + 6);
 
         doc.autoTable({
           startY: startY + 10,
-          head: [['項目', '氏名 / 対象', '日付', '金額']],
+          head: [['項目', '氏名 / 対象', '詳細', '日付', '金額']],
           body: buildTableBody(items),
           theme: 'grid',
           styles: { fontSize: 10, cellPadding: 2.5, lineColor: [203, 213, 225] },
           headStyles: { fillColor: [248, 250, 252], textColor: [31, 41, 55] },
           alternateRowStyles: { fillColor: [255, 255, 255] },
           columnStyles: {
-            3: { halign: 'right' }
+            4: { halign: 'right' }
           },
           margin: { left: 14, right: 14 }
         });
@@ -777,25 +768,8 @@ const AppConfig = {
         doc.setFontSize(11);
         doc.text(`年度: ${report.year}`, 14, 26);
         doc.text(`作成日: ${report.createdDate}`, 14, 32);
-
-        doc.setDrawColor(203, 213, 225);
-        doc.roundedRect(14, 38, 88, 20, 2, 2);
-        doc.roundedRect(108, 38, 88, 20, 2, 2);
-
-        doc.setFontSize(10);
-        doc.setTextColor(107, 114, 128);
-        doc.text('収入合計', 18, 45);
-        doc.text('支出合計', 112, 45);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.setTextColor(22, 163, 74);
-        doc.text(AppService.formatCurrency(report.incomeSummary.total), 18, 53);
-        doc.setTextColor(220, 38, 38);
-        doc.text(AppService.formatCurrency(report.expenseSummary.total), 112, 53);
-
         doc.setTextColor(17, 24, 39);
-        let currentY = 68;
+        let currentY = 42;
         currentY = drawTable(doc, currentY, '収入', report.incomeItems, [22, 163, 74]);
 
         if (currentY > 230) {
@@ -917,10 +891,10 @@ const AppConfig = {
           Dom.csvFileInput.click();
         });
 
-        Dom.pdfBtn.addEventListener('click', PdfService.executePrint);
-        if (Dom.closePreviewBtn) Dom.closePreviewBtn.addEventListener('click', PdfService.closePreview);
-        if (Dom.execPrintBtn) Dom.execPrintBtn.addEventListener('click', PdfService.executePrint);
-        if (Dom.savePdfBtn) Dom.savePdfBtn.addEventListener('click', PdfService.exportPdf);
+        Dom.pdfBtn.addEventListener('click', PdfService.openPreview);
+        Dom.closePreviewBtn.addEventListener('click', PdfService.closePreview);
+        Dom.execPrintBtn.addEventListener('click', PdfService.executePrint);
+        Dom.savePdfBtn.addEventListener('click', PdfService.exportPdf);
 
         Dom.csvFileInput.addEventListener('change', async (e) => {
           const file = e.target.files && e.target.files[0];
