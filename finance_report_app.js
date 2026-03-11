@@ -1,16 +1,12 @@
 const AppConfig = {
       defaultTab: 'income',
-      years: Array.from({ length: 21 }, (_, i) => 2020 + i),
-      defaultSortField: 'date',
-      defaultSortDirection: 'desc'
+      years: [2025, 2026, 2027, 2028]
     };
 
     const Dom = {
       groupNameInput: document.getElementById('groupNameInput'),
       yearSelect: document.getElementById('yearSelect'),
       categoryFilter: document.getElementById('categoryFilter'),
-      sortFieldSelect: document.getElementById('sortFieldSelect'),
-      sortDirectionSelect: document.getElementById('sortDirectionSelect'),
       summaryArea: document.getElementById('summaryArea'),
       cardList: document.getElementById('cardList'),
       tabButtons: Array.from(document.querySelectorAll('.tab-btn')),
@@ -55,13 +51,6 @@ const AppConfig = {
       let settings = { ...defaultSettings };
 
       const clone = value => JSON.parse(JSON.stringify(value));
-
-      function calcFiscalYear(dateText) {
-        const text = String(dateText || '').trim();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return NaN;
-        const [y, m] = text.split('-').map(Number);
-        return m <= 3 ? y - 1 : y;
-      }
 
       function getNextSequence(sourceItems) {
         return sourceItems.reduce((max, x) => Math.max(max, Number(x.id || 0)), 100);
@@ -213,53 +202,12 @@ const AppConfig = {
         return getGroupName() || '団体名未設定';
       }
 
-      function calcFiscalYearFromDate(dateText) {
-        const text = String(dateText || '').trim();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return Number(Dom.formYear.value || state.selectedYear);
-        const [y, m] = text.split('-').map(Number);
-        return m <= 3 ? y - 1 : y;
-      }
-
-      function compareItems(a, b) {
-        const direction = state.sortDirection === 'asc' ? 1 : -1;
-        let left = '';
-        let right = '';
-
-        switch (state.sortField) {
-          case 'amount':
-            left = Number(a.amount || 0);
-            right = Number(b.amount || 0);
-            break;
-          case 'category':
-            left = String(a.category || '');
-            right = String(b.category || '');
-            break;
-          case 'name':
-            left = String(a.name || '');
-            right = String(b.name || '');
-            break;
-          case 'memo':
-            left = String(a.memo || '');
-            right = String(b.memo || '');
-            break;
-          case 'date':
-          default:
-            left = String(a.date || '');
-            right = String(b.date || '');
-            break;
-        }
-
-        if (left < right) return -1 * direction;
-        if (left > right) return 1 * direction;
-        return Number(a.id || 0) - Number(b.id || 0);
-      }
-
       function getFilteredItems() {
         return DataStore.getAll()
           .filter(x => x.type === state.selectedTab)
           .filter(x => x.year === Number(state.selectedYear))
           .filter(x => state.selectedCategory === 'all' ? true : x.category === state.selectedCategory)
-          .sort(compareItems);
+          .sort((a, b) => (a.date < b.date ? 1 : -1));
       }
 
       function getCategoriesByTabAndYear(tab, year) {
@@ -297,7 +245,7 @@ const AppConfig = {
         return {
           id: state.editingId,
           type: Dom.formType.value,
-          year: calcFiscalYearFromDate(Dom.formDate.value),
+          year: Number(Dom.formYear.value),
           category: normalizeText(Dom.formCategory.value),
           name: normalizeText(Dom.formName.value),
           date: Dom.formDate.value,
@@ -353,7 +301,6 @@ const AppConfig = {
         typeLabelMap,
         formatCurrency,
         formatDate,
-        compareItems,
         getGroupName,
         getDisplayGroupName,
         setGroupName,
@@ -407,11 +354,6 @@ const AppConfig = {
         });
       }
 
-      function renderSortControls() {
-        if (Dom.sortFieldSelect) Dom.sortFieldSelect.value = AppService.state.sortField;
-        if (Dom.sortDirectionSelect) Dom.sortDirectionSelect.value = AppService.state.sortDirection;
-      }
-
       function renderCategoryFilter() {
         const categories = AppService.getCategoriesByTabAndYear(AppService.state.selectedTab, AppService.state.selectedYear);
         if (AppService.state.selectedCategory !== 'all' && !categories.includes(AppService.state.selectedCategory)) {
@@ -433,9 +375,9 @@ const AppConfig = {
           .join('');
       }
 
-      function summaryBox(key, value, kind = '') {
+      function summaryBox(key, value) {
         return `
-          <div class="summary-card ${kind}">
+          <div class="summary-card">
             <div class="k">${escapeHtml(key)}</div>
             <div class="v">${escapeHtml(value)}</div>
           </div>
@@ -443,17 +385,18 @@ const AppConfig = {
       }
 
       function renderSummary(items) {
-        const currentSummary = AppService.getSummary(items);
-        const incomeSummary = AppService.getSummary(
-          DataStore.getAll().filter(x => x.year === Number(AppService.state.selectedYear)).filter(x => x.type === 'income')
-        );
-        const expenseSummary = AppService.getSummary(
-          DataStore.getAll().filter(x => x.year === Number(AppService.state.selectedYear)).filter(x => x.type === 'expense')
-        );
+        const summary = AppService.getSummary(items);
+        const label = AppService.typeLabelMap[AppService.state.selectedTab];
+        const oppositeItems = DataStore.getAll()
+          .filter(x => x.year === Number(AppService.state.selectedYear))
+          .filter(x => x.type !== AppService.state.selectedTab);
+        const oppositeSummary = AppService.getSummary(oppositeItems);
+        const oppositeLabel = AppService.typeLabelMap[AppService.state.selectedTab === 'income' ? 'expense' : 'income'];
 
         Dom.summaryArea.innerHTML = [
-          summaryBox('収入合計', AppService.formatCurrency(incomeSummary.total), 'income'),
-          summaryBox('支出合計', AppService.formatCurrency(expenseSummary.total), 'expense')
+          summaryBox(`${label}合計`, AppService.formatCurrency(summary.total)),
+          summaryBox(`${oppositeLabel}合計`, AppService.formatCurrency(oppositeSummary.total)),
+          summaryBox('最新日付', summary.latest ? AppService.formatDate(summary.latest) : '-')
         ].join('');
       }
 
@@ -499,7 +442,6 @@ const AppConfig = {
         renderTheme();
         renderYearOptions();
         renderTabs();
-        renderSortControls();
         renderCategoryFilter();
         renderCategoryCandidates();
         const items = AppService.getFilteredItems();
@@ -657,11 +599,11 @@ const AppConfig = {
 
         const incomeItems = allItems
           .filter(x => x.type === 'income')
-          .sort(AppService.compareItems);
+          .sort((a, b) => (a.date > b.date ? 1 : -1));
 
         const expenseItems = allItems
           .filter(x => x.type === 'expense')
-          .sort(AppService.compareItems);
+          .sort((a, b) => (a.date > b.date ? 1 : -1));
 
         return {
           groupName: AppService.getDisplayGroupName(),
@@ -676,14 +618,13 @@ const AppConfig = {
 
       function buildRows(items) {
         if (!items.length) {
-          return '<tr><td colspan="5" style="text-align:center; color:#666;">データなし</td></tr>';
+          return '<tr><td colspan="4" style="text-align:center; color:#666;">データなし</td></tr>';
         }
 
         return items.map(item => `
           <tr>
             <td>${escapeHtml(item.category)}</td>
             <td>${escapeHtml(item.name)}</td>
-            <td>${escapeHtml(item.memo || '')}</td>
             <td>${escapeHtml(AppService.formatDate(item.date))}</td>
             <td class="amount-cell">${escapeHtml(AppService.formatCurrency(item.amount))}</td>
           </tr>
@@ -699,6 +640,7 @@ const AppConfig = {
             <div class="report-section-title ${themeClass}">${title}</div>
             <div class="report-mini-summary">
               <div class="report-badge ${themeClass}">合計 ${escapeHtml(AppService.formatCurrency(summary.total))}</div>
+              <div class="report-badge">最新日付 ${escapeHtml(summary.latest ? AppService.formatDate(summary.latest) : '-')}</div>
             </div>
             <div class="report-table-wrap">
               <table class="report-table">
@@ -706,7 +648,6 @@ const AppConfig = {
                   <tr>
                     <th>項目</th>
                     <th>氏名 / 対象</th>
-                    <th>詳細</th>
                     <th>日付</th>
                     <th class="amount-cell">金額</th>
                   </tr>
@@ -727,8 +668,19 @@ const AppConfig = {
           <div class="report-sheet">
             <header class="report-header">
               <div class="report-title">${escapeHtml(report.groupName)} 収支報告書</div>
-              <div class="report-meta">年度: ${escapeHtml(String(report.year))}年度</div>
+              <div class="report-meta">年度: ${escapeHtml(String(report.year))}</div>
               <div class="report-meta">作成日: ${escapeHtml(report.createdDate)}</div>
+
+              <div class="report-summary">
+                <div class="report-summary-card">
+                  <div class="report-summary-label">収入合計</div>
+                  <div class="report-summary-value" style="color:#16a34a;">${escapeHtml(AppService.formatCurrency(report.incomeSummary.total))}</div>
+                </div>
+                <div class="report-summary-card">
+                  <div class="report-summary-label">支出合計</div>
+                  <div class="report-summary-value" style="color:#dc2626;">${escapeHtml(AppService.formatCurrency(report.expenseSummary.total))}</div>
+                </div>
+              </div>
             </header>
 
             ${buildSection('収入', 'income', report.incomeItems)}
@@ -771,12 +723,11 @@ const AppConfig = {
 
       function buildTableBody(items) {
         if (!items.length) {
-          return [['', 'データなし', '', '', '']];
+          return [['', 'データなし', '', '']];
         }
         return items.map(item => [
           item.category || '',
           item.name || '',
-          item.memo || '',
           AppService.formatDate(item.date),
           AppService.formatCurrency(item.amount)
         ]);
@@ -789,18 +740,18 @@ const AppConfig = {
         const summary = AppService.getSummary(items);
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
-        doc.text(`合計: ${AppService.formatCurrency(summary.total)}`, 14, startY + 6);
+        doc.text(`合計: ${AppService.formatCurrency(summary.total)}    最新日付: ${summary.latest ? AppService.formatDate(summary.latest) : '-'}`, 14, startY + 6);
 
         doc.autoTable({
           startY: startY + 10,
-          head: [['項目', '氏名 / 対象', '詳細', '日付', '金額']],
+          head: [['項目', '氏名 / 対象', '日付', '金額']],
           body: buildTableBody(items),
           theme: 'grid',
           styles: { fontSize: 10, cellPadding: 2.5, lineColor: [203, 213, 225] },
           headStyles: { fillColor: [248, 250, 252], textColor: [31, 41, 55] },
           alternateRowStyles: { fillColor: [255, 255, 255] },
           columnStyles: {
-            4: { halign: 'right' }
+            3: { halign: 'right' }
           },
           margin: { left: 14, right: 14 }
         });
@@ -824,10 +775,27 @@ const AppConfig = {
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
-        doc.text(`年度: ${report.year}年度`, 14, 26);
+        doc.text(`年度: ${report.year}`, 14, 26);
         doc.text(`作成日: ${report.createdDate}`, 14, 32);
+
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(14, 38, 88, 20, 2, 2);
+        doc.roundedRect(108, 38, 88, 20, 2, 2);
+
+        doc.setFontSize(10);
+        doc.setTextColor(107, 114, 128);
+        doc.text('収入合計', 18, 45);
+        doc.text('支出合計', 112, 45);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(22, 163, 74);
+        doc.text(AppService.formatCurrency(report.incomeSummary.total), 18, 53);
+        doc.setTextColor(220, 38, 38);
+        doc.text(AppService.formatCurrency(report.expenseSummary.total), 112, 53);
+
         doc.setTextColor(17, 24, 39);
-        let currentY = 42;
+        let currentY = 68;
         currentY = drawTable(doc, currentY, '収入', report.incomeItems, [22, 163, 74]);
 
         if (currentY > 230) {
@@ -933,34 +901,11 @@ const AppConfig = {
           UiRenderer.renderAll('保存した内容を画面へ反映済み');
         });
 
-        if (Dom.sortFieldSelect) {
-          Dom.sortFieldSelect.addEventListener('change', e => {
-            AppService.state.sortField = e.target.value;
-            UiRenderer.renderAll('保存した内容を画面へ反映済み');
-          });
-        }
-
-        if (Dom.sortDirectionSelect) {
-          Dom.sortDirectionSelect.addEventListener('change', e => {
-            AppService.state.sortDirection = e.target.value;
-            UiRenderer.renderAll('保存した内容を画面へ反映済み');
-          });
-        }
-
         Dom.addBtnTop.addEventListener('click', ModalController.openNew);
         Dom.addBtnFab.addEventListener('click', ModalController.openNew);
         Dom.closeModalBtn.addEventListener('click', ModalController.close);
         Dom.cancelBtn.addEventListener('click', ModalController.close);
         Dom.saveBtn.addEventListener('click', ModalController.save);
-
-        Dom.formDate.addEventListener('change', e => {
-          Dom.formYear.value = String(AppService.state.selectedYear = (function(dateText){
-            const text = String(dateText || '').trim();
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return Number(Dom.formYear.value || AppService.state.selectedYear);
-            const [y, m] = text.split('-').map(Number);
-            return m <= 3 ? y - 1 : y;
-          })(e.target.value));
-        });
 
         Dom.exportCsvBtn.addEventListener('click', () => {
           CsvService.downloadCsv();
@@ -972,7 +917,7 @@ const AppConfig = {
           Dom.csvFileInput.click();
         });
 
-        Dom.pdfBtn.addEventListener('click', PdfService.openPreview);
+        Dom.pdfBtn.addEventListener('click', PdfService.executePrint);
         if (Dom.closePreviewBtn) Dom.closePreviewBtn.addEventListener('click', PdfService.closePreview);
         if (Dom.execPrintBtn) Dom.execPrintBtn.addEventListener('click', PdfService.executePrint);
         if (Dom.savePdfBtn) Dom.savePdfBtn.addEventListener('click', PdfService.exportPdf);
