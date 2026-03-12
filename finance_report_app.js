@@ -596,10 +596,9 @@ const UiRenderer = (() => {
                 <div class="chip-row">
                   <span class="chip">${item.category}</span>
                   <span class="chip">${AppService.typeLabelMap[item.type]}</span>
-                  <span class="chip">${item.year}</span>
+                  <span class="chip">${AppService.formatDate(item.date)}</span>
                 </div>
                 <div class="meta-title">${item.name}</div>
-                <div class="meta-sub">日付: ${AppService.formatDate(item.date)}</div>
                 ${item.memo ? `<div class="meta-sub">詳細: ${item.memo}</div>` : ''}
               </div>
 
