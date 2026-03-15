@@ -574,7 +574,8 @@
 		.report-table {
 			width: 100%;
 			border-collapse: collapse;
-			font-size: 0.92rem;
+			font-size: 0.9rem;
+			table-layout: fixed;
 		}
 
 			.report-table th, .report-table td {
@@ -582,6 +583,8 @@
 				padding: 8px;
 				vertical-align: top;
 				background: #fff;
+				word-break: break-word;
+				overflow-wrap: anywhere;
 			}
 
 			.report-table th {
@@ -592,6 +595,31 @@
 				.report-table td.amount-cell, .report-table th.amount-cell {
 					text-align: right;
 					white-space: nowrap;
+				}
+
+				.report-table th:nth-child(1),
+				.report-table td:nth-child(1) {
+					width: 15%;
+				}
+
+				.report-table th:nth-child(2),
+				.report-table td:nth-child(2) {
+					width: 20%;
+				}
+
+				.report-table th:nth-child(3),
+				.report-table td:nth-child(3) {
+					width: 14%;
+				}
+
+				.report-table th:nth-child(4),
+				.report-table td:nth-child(4) {
+					width: 36%;
+				}
+
+				.report-table th:nth-child(5),
+				.report-table td:nth-child(5) {
+					width: 15%;
 				}
 
 		@media print {
@@ -708,28 +736,6 @@
 			</header>
 
 			<main class="content">
-				<section class="toolbar">
-					<div class="field">
-						<label class="label" for="categoryFilter">項目</label>
-						<select id="categoryFilter" class="control"></select>
-					</div>
-
-					<div class="field">
-						<label class="label" for="sortFieldSelect">並び替え</label>
-						<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-							<select id="sortFieldSelect" class="control">
-								<option value="date">日付</option>
-								<option value="category">項目</option>
-								<option value="name">氏名 / 対象</option>
-								<option value="amount">金額</option>
-							</select>
-							<select id="sortDirectionSelect" class="control">
-								<option value="asc">昇順</option>
-								<option value="desc" selected>降順</option>
-							</select>
-						</div>
-					</div>
-				</section>
 
 				<section class="summary" id="summaryArea"></section>
 
@@ -742,13 +748,36 @@
 						<button id="exportCsvBtn" class="btn btn-secondary" type="button">出力</button>
 						<button id="importCsvBtn" class="btn btn-secondary" type="button">読込</button>
 					</div>
-					<input id="csvFileInput" type="file" accept=".csv,text/csv" style="display:none" />
-					<div class="section-note" id="storageStatus">入力内容はこの端末内に自動保存される。</div>
 				</section>
 
-				<div class="section-note">スマホ向けにカード表示を前提としたレイアウト。カテゴリは候補選択と新規入力の両方に対応。</div>
+				<input id="csvFileInput" type="file" accept=".csv,text/csv" style="display:none" />
+
+				<section class="toolbar">
+					<div class="field">
+						<label class="label" for="categoryFilter">項目</label>
+						<select id="categoryFilter" class="control"></select>
+					</div>
+
+					<div class="field">
+						<label class="label" for="sortFieldSelect">並び替え</label>
+						<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+							<select id="sortFieldSelect" class="control">
+								<option value="category">項目</option>
+								<option value="date">日付</option>
+								<option value="name">氏名 / 対象</option>
+								<option value="amount">金額</option>
+							</select>
+							<select id="sortDirectionSelect" class="control">
+								<option value="asc">昇順</option>
+								<option value="desc" selected>降順</option>
+							</select>
+						</div>
+					</div>
+				</section>
 
 				<section class="list" id="cardList"></section>
+
+				<div class="section-note" id="storageStatus">入力内容はこの端末内に自動保存される。</div>
 
 				<section id="printPreviewSection" class="print-preview hidden">
 					<div id="printPreviewBody" class="print-preview-body"></div>
