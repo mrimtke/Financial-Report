@@ -165,7 +165,7 @@ const AppService = (() => {
 		selectedTab: AppConfig.defaultTab,
 		selectedYear: 2026,
 		selectedCategory: 'all',
-		sortField: 'date',
+		sortField: 'category',
 		sortDirection: 'desc',
 		editingId: null
 	};
@@ -563,6 +563,10 @@ const UiRenderer = (() => {
 			<div class="k">支出合計</div>
 			<div class="v_expense">${AppService.formatCurrency(expenseSummary.total)}</div>
 		  </article>
+		  <article class="summary-card finance">
+			<div class="k">次年度繰越金</div>
+			<div class="v_finance">${AppService.formatCurrency(incomeSummary.total - expenseSummary.total)}</div>
+		  </article>
 		`;
 		/*
 				  <article class="summary-card">
@@ -657,10 +661,6 @@ const PdfService = (() => {
 				};
 
 				switch (AppService.state.sortField) {
-					case 'category': {
-						const result = compareValues(a.category, b.category);
-						return result || normalizeText(b.date).localeCompare(normalizeText(a.date), 'ja') || (Number(a.id || 0) - Number(b.id || 0));
-					}
 					case 'name': {
 						const result = compareValues(a.name, b.name);
 						return result || normalizeText(b.date).localeCompare(normalizeText(a.date), 'ja') || (Number(a.id || 0) - Number(b.id || 0));
@@ -670,9 +670,14 @@ const PdfService = (() => {
 						return result || normalizeText(b.date).localeCompare(normalizeText(a.date), 'ja') || (Number(a.id || 0) - Number(b.id || 0));
 					}
 					case 'date':
-					default: {
+					{
 						const result = compareValues(a.date, b.date);
 						return result || (Number(a.id || 0) - Number(b.id || 0));
+						}
+					case 'category':
+					default: {
+						const result = compareValues(a.category, b.category);
+						return result || normalizeText(b.date).localeCompare(normalizeText(a.date), 'ja') || (Number(a.id || 0) - Number(b.id || 0));
 					}
 				}
 			});
@@ -734,12 +739,16 @@ const PdfService = (() => {
 				  <div class="report-summary-label">支出合計</div>
 				  <div class="report-summary-value">${AppService.formatCurrency(report.expenseSummary.total)}</div>
 				</div>
+				<div class="report-summary-card-finance">
+				  <div class="report-summary-label">次年度繰越金</div>
+				  <div class="report-summary-value">${AppService.formatCurrency(report.incomeSummary.total - report.expenseSummary.total)}</div>
+				</div>
 			  </div>
 			</div>
 
 			<section class="report-section">
-			  <div class="report-section-title income">収入</div>
-			  <div class="report-mini-summary">
+			  <div class="report-section-head">
+				<div class="report-section-title income">収入</div>
 				<div class="report-badge income">合計: ${AppService.formatCurrency(report.incomeSummary.total)}</div>
 			  </div>
 			  <div class="report-table-wrap">
@@ -761,8 +770,8 @@ const PdfService = (() => {
 			</section>
 
 			<section class="report-section">
-			  <div class="report-section-title expense">支出</div>
-			  <div class="report-mini-summary">
+			  <div class="report-section-head">
+				<div class="report-section-title expense">支出</div>
 				<div class="report-badge expense">合計: ${AppService.formatCurrency(report.expenseSummary.total)}</div>
 			  </div>
 			  <div class="report-table-wrap">

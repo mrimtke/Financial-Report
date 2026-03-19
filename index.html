@@ -26,6 +26,9 @@
 			--theme: var(--income);
 			--theme-soft: var(--income-soft);
 			--theme-border: var(--income-border);
+			--finance: #5a5a5a;
+			--finance-soft: #cecece;
+			--finance-border: #000;
 		}
 
 		* {
@@ -176,7 +179,7 @@
 
 		.summary {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: 1fr 1fr 1fr;
 			gap: 10px;
 			margin-top: 12px;
 		}
@@ -198,6 +201,11 @@
 				background: linear-gradient(180deg, #fff 0%, var(--expense-soft) 100%);
 			}
 
+			.summary-card.finance {
+				border-color: var(--finance-border);
+				background: linear-gradient(180deg, #fff 0%, var(--finance-soft) 100%);
+			}
+
 			.summary-card .k {
 				color: var(--sub);
 				font-size: 0.82rem;
@@ -213,6 +221,13 @@
 			}
 
 			.summary-card .v_expense {
+				font-size: 1.25rem;
+				font-weight: 800;
+				line-height: 1.2;
+				word-break: break-word;
+			}
+
+			.summary-card .v_finance {
 				font-size: 1.25rem;
 				font-weight: 800;
 				line-height: 1.2;
@@ -486,24 +501,34 @@
 
 		.report-summary {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: 1fr 1fr 1fr;
 			gap: 10px;
 			margin-top: 12px;
 		}
 
-		.report-summary-card-income {
-			border: 1px solid #cbd5e1;
-			border-radius: 12px;
-			padding: 12px;
-			background: var(--income-soft);
-		}
+        .report-summary-card-income {
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            border-color: var(--income-border);
+            background: linear-gradient(180deg, #fff 0%, var(--income-soft) 100%);
+        }
 
-		.report-summary-card-expense {
-			border: 1px solid #cbd5e1;
-			border-radius: 12px;
-			padding: 12px;
-			background: var(--expense-soft);
-		}
+        .report-summary-card-expense {
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            border-color: var(--expense-border);
+            background: linear-gradient(180deg, #fff 0%, var(--expense-soft) 100%);
+        }
+
+        .report-summary-card-finance {
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            border-color: var(--finance-border);
+            background: linear-gradient(180deg, #fff 0%, var(--finance-soft) 100%);
+        }
 
 		.report-summary-label {
 			color: #6b7280;
@@ -520,6 +545,23 @@
 		.report-section {
 			margin-top: 20px;
 		}
+
+        .report-section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: nowrap;
+        }
+
+            .report-section-head .report-section-title {
+                margin-bottom: 0;
+                white-space: nowrap;
+            }
+
+            .report-section-head .report-badge {
+                white-space: nowrap;
+            }
 
 		.report-section-title {
 			font-size: 1.1rem;
@@ -740,11 +782,9 @@
 				<section class="summary" id="summaryArea"></section>
 
 				<section class="toolbar" style="margin-top:12px;">
-					<div class="toolbar-actions" style="grid-template-columns:1fr 1fr;">
+					<div class="toolbar-actions" style="grid-template-columns:1fr 1fr 1fr 1fr;">
 						<button id="pdfBtn" class="btn btn-secondary" type="button">PDF</button>
 						<button id="addBtnTop" class="btn btn-primary" type="button">＋追加</button>
-					</div>
-					<div class="toolbar-actions" style="grid-template-columns:1fr 1fr;">
 						<button id="exportCsvBtn" class="btn btn-secondary" type="button">出力</button>
 						<button id="importCsvBtn" class="btn btn-secondary" type="button">読込</button>
 					</div>
@@ -762,7 +802,7 @@
 						<label class="label" for="sortFieldSelect">並び替え</label>
 						<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 							<select id="sortFieldSelect" class="control">
-								<option value="category">項目</option>
+								<option value="category" selected>項目</option>
 								<option value="date">日付</option>
 								<option value="name">氏名 / 対象</option>
 								<option value="amount">金額</option>
